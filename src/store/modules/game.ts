@@ -250,10 +250,20 @@ const receiveMessage = async ({
     }
   }
 
-  // Update room chars on attack for state reasons
-  if (message_data.type === "notification.combat.attack") {
+  // Update room chars on attack & heal for state reasons
+  if (
+    message_data.type === "notification.combat.attack" ||
+    message_data.type === "notification.combat.healing"
+  ) {
     commit("room_chars_update", message_data.data.actor);
     commit("room_chars_update", message_data.data.target);
+  }
+
+  // Update room chars on short tick for state reasons
+  if (
+    message_data.type === "notification.shorttic"
+  ) {
+    commit("room_chars_update", message_data.data.actor);
   }
 
   // Open & close messages

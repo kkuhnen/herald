@@ -2,35 +2,12 @@
   <div class="vitals-view flex flex-grow flex-col">
     <div class="vitals-region">
       <div class="vitals">
-        <div class="vital health">
-          <div class="label-row">
-            <div class="label">Health</div>
-            <div class="amount">{{ player.health }}</div>
-          </div>
-          <div class="vital-bar">
-            <div class="health-bar" :style="{ width: healthPerc }"></div>
-          </div>
-        </div>
-
-        <div class="vital mana" v-if="hasMana">
-          <div class="label-row">
-            <div class="label">Mana</div>
-            <div class="amount">{{ player.mana }}</div>
-          </div>
-          <div class="vital-bar">
-            <div class="mana-bar" :style="{ width: manaPerc }"></div>
-          </div>
-        </div>
-
-        <div class="vital stamina">
-          <div class="label-row">
-            <div class="label">Stamina</div>
-            <div class="amount">{{ player.stamina }}</div>
-          </div>
-          <div class="vital-bar">
-            <div class="stamina-bar" :style="{ width: staminaPerc }"></div>
-          </div>
-        </div>
+        <VitalBar v-for="stat in stats"
+          :key="stat.type"
+          :type="stat.type"
+          :label="stat.label"
+          :char="player"
+        />
       </div>
     </div>
 
@@ -50,14 +27,16 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Prop, Vue } from "vue-property-decorator";
 import Status from "./Status.vue";
 import Skills from "./Skills.vue";
 import Combat from "./Combat.vue";
+import VitalBar from "./VitalBar.vue";
 import Cast from "../consoleviews/Cast.vue";
 
 @Component({
   components: {
+    VitalBar,
     Combat,
     Skills,
     Status,
@@ -65,6 +44,17 @@ import Cast from "../consoleviews/Cast.vue";
   }
 })
 export default class PanelVitals extends Vue {
+  stats: object[] = [];
+
+  constructor() {
+    super();
+    this.stats.push({type: 'health', label: 'Health'});
+    if (this.hasMana) {
+      this.stats.push({ type: 'mana', label: 'Mana' });
+    }
+    this.stats.push({ type: 'stamina', label: 'Stamina' });
+  }
+
   get is_mobile() {
     return this.$store.state.game.is_mobile;
   }
@@ -142,45 +132,6 @@ export default class PanelVitals extends Vue {
           border-radius: 6px;
         }
       }
-    }
-  }
-}
-
-.vital {
-  .label-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2px;
-
-    .label {
-      @include font-title-light;
-      font-size: 15px;
-      line-height: 18px;
-      color: $color-secondary;
-    }
-
-    .amount {
-      @include font-text-regular;
-      font-size: 11px;
-      line-height: 15px;
-      //margin-top: 9px;
-      margin-bottom: 1px;
-      color: $color-text-hex-50;
-    }
-  }
-
-  .vital-bar {
-    background: $color-background-very-light;
-    border-radius: 6px;
-    height: 6px;
-    width: 100%;
-
-    > div {
-      width: 0%;
-      height: 100%;
-      background: $color-secondary;
-      border-radius: 6px;
     }
   }
 }
