@@ -110,6 +110,18 @@
         <Chars/>
       </div>
     </div>
+
+    <!-- Combat Meter -->
+    <div class="sidebar-element combat-meter">
+      <h3 @click="onClickExpand('combat-meter')" class="hover">
+        <span v-if="expanded === 'combat-meter'">-</span>
+        <span v-else>+</span>
+        Combat Meters
+      </h3>
+      <div v-if="expanded === 'combat-meter'" class="my-1">
+        <CombatMeter/>
+      </div>
+    </div>
     
     <!-- News -->
   </div>
@@ -122,6 +134,7 @@ import QuestLog from "@/components/game/QuestLog.vue";
 import ComLog from "@/components/game/sidebar/ComLog.vue";
 import Focus from "@/components/game/sidebar/Focus.vue";
 import Chars from "@/components/game/sidebar/Chars.vue";
+import CombatMeter from "@/components/game/sidebar/CombatMeter.vue";
 import { UI_MUTATIONS } from "@/constants.ts";
 import { STAFF_PLAYING } from "../../router";
 import _ from "lodash";
@@ -132,11 +145,12 @@ import _ from "lodash";
     QuestLog,
     ComLog,
     Focus,
-    Chars
+    Chars,
+    CombatMeter
   }
 })
 export default class Sidebar extends Vue {
-  expanded: "who" | "" | "skills" | "feats" | "chars" = "";
+  expanded: "who" | "" | "skills" | "feats" | "chars" | "combat-meter" = "";
 
   get allow_combat() {
     return this.$store.state.game.world.allow_combat;

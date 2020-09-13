@@ -104,6 +104,7 @@ const set_initial_state = () => {
     com_list: [],
     factions: [],
     room_chars: [],
+    combat_list: {},
   };
 };
 
@@ -255,6 +256,7 @@ const receiveMessage = async ({
   if (message_data.type === "notification.combat.attack") {
     commit("room_chars_update", message_data.data.actor);
     commit("room_chars_update", message_data.data.target);
+    commit("combat_meter_update", message_data.data);
   }
 
   // Open & close messages
@@ -940,6 +942,77 @@ const mutations = {
 
   com_list_add: (state, com) => {
     state.com_list.push(com);
+  },
+
+  combat_meter_reset: (state) => {
+    state.combat_list = {};
+  },
+
+  combat_meter_update: (state, data) => {
+    // Merge fight intervals to account for overlapping fights in total damage.
+    const mergeIntervalsSum = function(intervals) {
+      let sortedIntervals = intervals.sort((a,b) => a[0] - b[0]);
+      let sum = 0;
+      for (let i = 0; i < sortedIntervals.length; i++) {
+        if (i > 0 && sortedIntervals[i][0] < sortedIntervals[i-1][1]) {
+          sum += sortedIntervals[i][1] - sortedIntervals[i-1][1];
+        }
+        else {
+          sum += sortedIntervals[i][1] - sortedIntervals[i][0];
+        }
+      }
+      return sum;
+    }
+
+    const addCombatData = function(current_data, new_data, current_time) {
+      if (current_data[new_data.actor.key] && current_data[new_data.actor.key]['target_list'][new_data.target.key]) {
+        const previousTotalDPS = current_data[new_data.actor.key]['target_list'][new_data.target.key]['dps'];
+        const previousTotalDuration = current_data[new_data.actor.key]['target_list'][new_data.target.key]['lasttime'] - current_data[new_data.actor.key]['target_list'][new_data.target.key]['starttime'];
+        const damageTotal = previousTotalDPS*previousTotalDuration + new_data.damage_taken;
+        const timeTotal = current_time - current_data[new_data.actor.key]['target_list'][new_data.target.key]['starttime'];
+        current_data[new_data.actor.key]['target_list'][new_data.target.key]['dps'] = damageTotal / timeTotal;
+        current_data[new_data.actor.key]['target_list'][new_data.target.key]['lasttime'] = current_time;
+      }
+      else {
+        if (!current_data[new_data.actor.key]) current_data[new_data.actor.key] = {
+          name: new_data.actor.name,
+          target_list: {},
+          all: {
+            dps: 0,
+            duration: 1,
+          },
+        };
+        current_data[new_data.actor.key]['target_list'][new_data.target.key] = {
+          starttime: current_time - 1,
+          lasttime: current_time,
+          dps: new_data.damage_taken,
+          name: new_data.target.name,
+        };
+      }
+
+      current_data = updateTotal(current_data, new_data, current_time);
+      return current_data;
+    }
+
+    const updateTotal = function(current_data, new_data, current_time) {
+      let intervals : any[] = [];
+      const list = Object.values(current_data[new_data.actor.key]['target_list']) as any;
+      for (let target of list) {
+        intervals.push([target.starttime, target.lasttime]);
+      }
+      const previousDPS = current_data[new_data.actor.key]['all']['dps'];
+      const previousDuration = current_data[new_data.actor.key]['all']['duration'];
+      const damageTotal = previousDPS*previousDuration + new_data.damage_taken;
+      const timeTotal = mergeIntervalsSum(intervals);
+      current_data[new_data.actor.key]['all']['dps'] = damageTotal / timeTotal;
+      current_data[new_data.actor.key]['all']['duration'] = timeTotal;
+      return current_data;
+    }
+
+    //if (data.type === 'notification.combat.attack') {
+      const currentTime = Date.now() / 1000; // in seconds
+      state.combat_list = addCombatData({...state.combat_list}, data, currentTime);
+    //}
   },
 };
 
